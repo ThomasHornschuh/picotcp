@@ -174,6 +174,10 @@ ifeq ($(ARCH),arm9)
   CFLAGS+=-DARM9 -mcpu=arm9e -march=armv5te -gdwarf-2 -Wall -marm -mthumb-interwork -fpack-struct
 endif
 
+ifeq ($(ARCH),rv32im)
+  CFLAGS+=-march=rv32im -mabi=ilp32 -mstrict-align -DRISCV32
+endif
+
 ifeq ($(ADDRESS_SANITIZER),1)
   TEST_LDFLAGS+=-fsanitize=address -fno-omit-frame-pointer
 endif

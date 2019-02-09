@@ -26,3 +26,9 @@ cscope.out
 *.pcap
 .ycm_extra_conf.py
 .clang_complete
+build_rv32
+.vscode
+*.lst
+*.dmp
+*.bin
+
