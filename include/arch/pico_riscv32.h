@@ -3,7 +3,7 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#define dbg(...) do {} while(0)
+#define dbg printf
 /* #define dbg printf */
 
 /*************************/

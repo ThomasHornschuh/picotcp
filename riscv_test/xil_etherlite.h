@@ -22,6 +22,9 @@
 
 void platform_eth_init();
 
+uint32_t platform_eth_get_packet_nb( void* buf, uint32_t maxlen );
+void platform_eth_send_packet( const void* src, uint32_t size );
+
 
 
 

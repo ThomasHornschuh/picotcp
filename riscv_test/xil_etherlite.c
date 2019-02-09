@@ -5,19 +5,15 @@
  */
 
 
-#include "platform.h"
-#include "platform_conf.h"
-#include "type.h"
-#include "console.h"
+#include "bonfire.h"
+#include "pico_stack.h"
 #include "xil_etherlite.h"
-#include "irq_handler.h"
-#include "uip.h"
-#include "elua_uip.h"
-
-#include "encoding.h"
-#include <string.h>
-
 #include "mem_rw.h"
+
+#include <string.h>
+#include <stdbool.h>
+
+
 
 #define ETH_BUFSIZE_WORDS (0x07f0/4)
 
@@ -40,29 +36,24 @@ inline uint32_t _read_leds()
 void platform_eth_init()
 {
 // {0,0,0x5E,0,0xFA,0xCE}
-static struct uip_eth_addr sTempAddr = {
-    .addr[0] = 0,
-    .addr[1] = 0,
-    .addr[2] = 0x5e,
-    .addr[3] = 0,
-    .addr[4] = 0x0fa,
-    .addr[5] = 0x0ce
-  };
+// static struct uip_eth_addr sTempAddr = {
+//     .addr[0] = 0,
+//     .addr[1] = 0,
+//     .addr[2] = 0x5e,
+//     .addr[3] = 0,
+//     .addr[4] = 0x0fa,
+//     .addr[5] = 0x0ce
+//  };
 
-  printk("Initalizing Ethernet core\n");
+  dbg("Initalizing Ethernet core\n");
 
-  set_csr(mie,MIP_MEIP); // Enable External Interrupt
+  //set_csr(mie,MIP_MEIP); // Enable External Interrupt
 
   // clear pending packets, enable receive interrupts
   _write_word(ETHL_RX_PING_CTRL,0x8);
   _write_word(ETHL_RX_PONG_CTRL,0x0);
   _write_word(ETHL_TX_PING_CTRL,0);
-  _write_word(ETHL_GIE,0x80000000); // Enable Ethernet Interrupts
-
-
-   elua_uip_init( &sTempAddr );
-
-
+  //_write_word(ETHL_GIE,0x80000000); // Enable Ethernet Interrupts
 }
 
 
@@ -80,14 +71,14 @@ int i;
 
     //printk("copy from %x to %x, %d bytes, %d words\n",src,dest,size,szwords);
     if (szwords>ETH_BUFSIZE_WORDS) {
-      do_panic("panic: Ethernet buffer copy size overflow: %d\n",szwords);
+      dbg("panic: Ethernet buffer copy size overflow: %d\n",szwords);
     }
     for(i=0;i<szwords;i++)
        pdest[i]=psrc[i];
 }
 
 
-void platform_eth_send_packet( const void* src, u32 size )
+void platform_eth_send_packet( const void* src, uint32_t size )
 {
 
    while (_read_word(ETHL_TX_PING_CTRL) & 0x01); // Wait until buffer ready
@@ -99,11 +90,10 @@ void platform_eth_send_packet( const void* src, u32 size )
 }
 
 
-u32 platform_eth_get_packet_nb( void* buf, u32 maxlen )
+uint32_t platform_eth_get_packet_nb( void* buf, uint32_t maxlen )
 {
-static BOOL is_PingBuff = true;      // start always with the ping buffer
+static bool is_PingBuff = true;      // start always with the ping buffer
 void * currentBuff;
-
 
 
   if (is_PingBuff)
@@ -121,9 +111,9 @@ void * currentBuff;
 
      memcpy(buf,currentBuff,maxlen);
      _write_word(currentBuff+ETHL_OFFSET_CTRL,0x8); // clear buffer, enable interrupts
-     //int i;
-     //for(i=0;i<16;i++) printk("%x ",((uint8_t*)buf)[i]);
-     //printk("\n");
+    //  int i;
+    //  for(i=0;i<16;i++) dbg("%x ",((uint8_t*)buf)[i]);
+    //  dbg("\n");
      is_PingBuff = !is_PingBuff; // toggle
      return maxlen;
 
@@ -131,55 +121,50 @@ void * currentBuff;
       return 0;
   }
 }
-void platform_eth_force_interrupt(void)
-{
-// force_interrupt is called from non-interrupt code
-// so we need to disable interrupts to avoid a real IRQ happening at the same time
+// void platform_eth_force_interrupt(void)
+// {
+// // force_interrupt is called from non-interrupt code
+// // so we need to disable interrupts to avoid a real IRQ happening at the same time
 
-int oldstate=platform_cpu_set_global_interrupts(PLATFORM_CPU_DISABLE);
+// int oldstate=platform_cpu_set_global_interrupts(PLATFORM_CPU_DISABLE);
 
-  _write_leds(0x02); // light LED5
-  elua_uip_mainloop();
-   _write_leds(0x0);
-  platform_cpu_set_global_interrupts(oldstate);
-}
+//   _write_leds(0x02); // light LED5
+//   elua_uip_mainloop();
+//    _write_leds(0x0);
+//   platform_cpu_set_global_interrupts(oldstate);
+// }
 
-u32 platform_eth_get_elapsed_time(void)
-{
+// u32 platform_eth_get_elapsed_time(void)
+// {
 
-    if( eth_timer_fired )
-    {
-      eth_timer_fired = 0;
-      return 1000/VTMR_FREQ_HZ; // time must be returned in ms !!!
-    }
-    else
-      return 0;
+//     if( eth_timer_fired )
+//     {
+//       eth_timer_fired = 0;
+//       return 1000/VTMR_FREQ_HZ; // time must be returned in ms !!!
+//     }
+//     else
+//       return 0;
 
-}
-
-
-
-void ethernet_irq_handler()
-{
-   if (_read_word((void*)BONFIRE_SYSIO) & 0x01) { // Pending IRQ
-
-#ifdef  BUILD_UIP
-      _write_leds(0x01); // light LED4
-      in_ethernet_irq=1;
-      elua_uip_mainloop();
-      in_ethernet_irq=0;
-      _write_word((void*)BONFIRE_SYSIO,0x01); // clear IRQ
-      _write_leds(0x0);
-
-#endif
-   } else
-     printk("Uups, ethernet irq handler called without pending IRQ\n");
+// }
 
 
-}
 
-void uip_log(char *msg)
-{
+// void ethernet_irq_handler()
+// {
+//    if (_read_word((void*)BONFIRE_SYSIO) & 0x01) { // Pending IRQ
 
-  printk("UIP Log %s\n",msg);
-}
+// #ifdef  BUILD_UIP
+//       _write_leds(0x01); // light LED4
+//       in_ethernet_irq=1;
+//       elua_uip_mainloop();
+//       in_ethernet_irq=0;
+//       _write_word((void*)BONFIRE_SYSIO,0x01); // clear IRQ
+//       _write_leds(0x0);
+
+// #endif
+//    } else
+//      printk("Uups, ethernet irq handler called without pending IRQ\n");
+
+
+// }
+

@@ -45,9 +45,6 @@ clean:
 	rm build/*
 	
 
-
-
-
 build/%.o : %.S
 	$(TARGET_CC) $(TARGET_CFLAGS) -c $< -o $@
 
@@ -72,6 +69,6 @@ build/%.hex : build/%.elf
 
 
 
-build/pvtest.elf :  build/main.o  build/sys.o
-	$(TARGET_LD)  -o $@ $(TARGET_LDFLAGS_SYSCALL)  $? -L$(PICODIR)/lib -lpicotcp  -lm
+build/pvtest.elf :  build/main.o  build/sys.o  build/xil_etherlite.o build/ethernet_driver.o
+	$(TARGET_LD)  -o $@ $(TARGET_LDFLAGS_SYSCALL)  $^ -L$(PICODIR)/lib -lpicotcp  -lm
 
