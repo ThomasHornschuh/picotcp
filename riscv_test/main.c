@@ -5,11 +5,14 @@
 #include "pico_stack.h"
 #include "pico_ipv4.h"
 #include "pico_icmp4.h"
+#include "pico_ethernet.h"
 
 //#include "pico_riscv32.h"
 
 
 #define NUM_PING 10
+
+ 
 
 static int finished = 0;
 
@@ -31,28 +34,36 @@ void cb_ping(struct pico_icmp4_stats *s)
     }
 }
 
+extern struct pico_device *pico_eth_create(const char *name, const uint8_t *mac);
 
-int main(void){
+static uint8_t c_mac[] =  {0,0, 0x5e,0,0x0fa,0x0ce };
+
+
+
+int main(void)
+{
     int id;
     struct pico_ip4 ipaddr, netmask;
     struct pico_device* dev;
+
+   
 
     /* initialise the stack. Super important if you don't want ugly stuff like
      * segfaults and such! */
     pico_stack_init();
 
-    /* create the tap device */
-    // dev = pico_tap_create("tap0");
+    
+    dev = pico_eth_create("eth0",c_mac);
     // if (!dev)
     //     return -1;
 
     // /* assign the IP address to the tap interface */
-    // pico_string_to_ipv4("192.168.5.4", &ipaddr.addr);
-    // pico_string_to_ipv4("255.255.255.0", &netmask.addr);
-    // pico_ipv4_link_add(dev, ipaddr, netmask);
-    printf("%ld %ld\n",PICO_TIME(),PICO_TIME_MS());
+    pico_string_to_ipv4("192.168.26.200", &ipaddr.addr);
+    pico_string_to_ipv4("255.255.255.0", &netmask.addr);
+    pico_ipv4_link_add(dev, ipaddr, netmask);
+   
     printf("starting ping\n");
-    id = pico_icmp4_ping("192.168.5.5", NUM_PING, 1000, 10000, 64, cb_ping);
+    id = pico_icmp4_ping("192.168.26.2", NUM_PING, 1000, 10000, 64, cb_ping);
 
     if (id == -1)
         return -1;
@@ -62,7 +73,7 @@ int main(void){
      * your network performance, but everything should keep working (provided
      * you don't go overboard with the delays). */
    
-    while (finished != 1)
+    while (1)
     {
         
         pico_stack_tick();
