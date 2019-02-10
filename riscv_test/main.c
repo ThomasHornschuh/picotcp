@@ -9,7 +9,7 @@
 #include "pico_dhcp_client.h"
 #include "pico_ethernet.h"
 
-//#include "pico_riscv32.h"
+
 
 
 #define NUM_PING 10
@@ -75,6 +75,8 @@ char adr_b[16],gw_b[16],netmask_b[16],dns_b[16];
 
 }
 
+extern void app_tcpecho(uint16_t source_port);
+
 int main(void)
 {
     int id;
@@ -111,11 +113,13 @@ int main(void)
     if (id == -1)
         return -1;
 
+    app_tcpecho(5050);
     /* keep running stack ticks to have picoTCP do its network magic. Note that
      * you can do other stuff here as well, or sleep a little. This will impact
      * your network performance, but everything should keep working (provided
      * you don't go overboard with the delays). */
    
+    
     while (1)
     {
         
