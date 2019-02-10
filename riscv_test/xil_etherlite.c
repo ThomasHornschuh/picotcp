@@ -17,6 +17,20 @@
 
 #define ETH_BUFSIZE_WORDS (0x07f0/4)
 
+#define MAX_FRAME 1522
+
+// Buffer Offsets
+#define O_ETHERTYPE 12 
+#define O_PAYLOAD 14 // Begin if Payload
+#define O_IP_LENGTH (O_PAYLOAD+2)
+
+// IP Constants
+#define ARP_LENGTH 26 // Size of ARP packet 
+#define ETYPE_IP 0x800
+#define ETYPE_ARP 0x806
+
+
+
 static volatile int in_ethernet_irq = 0;
 
 
@@ -90,32 +104,61 @@ void platform_eth_send_packet( const void* src, uint32_t size )
 }
 
 
+static inline bool isFull( uintptr_t buff )
+{
+  return _read_word( (void*)( buff+ETHL_OFFSET_CTRL )) & 0x01;
+}
+
+// Get Word in Network byte order
+static  inline uint16_t get_nbo_word( uintptr_t buff,int offset )
+{
+  uint8_t *b = (uint8_t*)buff;
+
+  return b[offset+1] | (b[offset] << 8);
+}
+
 uint32_t platform_eth_get_packet_nb( void* buf, uint32_t maxlen )
 {
-static bool is_PingBuff = true;      // start always with the ping buffer
-void * currentBuff;
+// static bool is_PingBuff = true;      // start always with the ping buffer
+static uintptr_t currentBuff = (uintptr_t) ETHL_RX_PING_BUFF; // start always with the ping buffer
+int length;
 
 
-  if (is_PingBuff)
-    currentBuff= ETHL_RX_PING_BUFF;
-  else
-    currentBuff= ETHL_RX_PONG_BUFF;
+  // Check if buffers are out of sync...
+  if (!isFull(currentBuff) && isFull(currentBuff ^ PONG_BUFF_OFFSET)) {
+    dbg("Etherlite buffers out of sync, correcting...\n");
+    currentBuff ^= PONG_BUFF_OFFSET;
+  }
 
-
-  if (_read_word(currentBuff+ETHL_OFFSET_CTRL) & 0x01) {
-
-     if (is_PingBuff)
-      _write_leds((0x01<<2) |_read_leds()); // light LED6
+  if (isFull(currentBuff)) {
+     //dbg("Ethernet Buffer %d used\n",(currentBuff & PONG_BUFF_OFFSET)?1:0);
+     if (currentBuff & PONG_BUFF_OFFSET)
+      _write_leds(0x01<<3); // light LED7
      else
-       _write_leds((0x01<<3) | _read_leds()); // light LED7
+       _write_leds(0x01<<2); // light LED6
 
-     memcpy(buf,currentBuff,maxlen);
-     _write_word(currentBuff+ETHL_OFFSET_CTRL,0x8); // clear buffer, enable interrupts
+    // Caclucate frame size
+    uint16_t ethertype = get_nbo_word(currentBuff,O_ETHERTYPE);
+    dbg("Ethertype %x\n",ethertype);
+    switch (ethertype) {
+      case ETYPE_IP:
+        length=get_nbo_word(currentBuff,O_IP_LENGTH) + O_PAYLOAD + 4;
+        break;
+      case ETYPE_ARP:
+        length=O_PAYLOAD+ARP_LENGTH+4;
+        break;
+      default:
+        length=ethertype>MAX_FRAME?MAX_FRAME:ethertype;  
+    }   
+    if (length>maxlen) length=maxlen;
+
+     memcpy(buf,(void*)currentBuff,length);
+     _write_word((void*)currentBuff+ETHL_OFFSET_CTRL,0x8); // clear buffer, enable interrupts
     //  int i;
     //  for(i=0;i<16;i++) dbg("%x ",((uint8_t*)buf)[i]);
     //  dbg("\n");
-     is_PingBuff = !is_PingBuff; // toggle
-     return maxlen;
+     currentBuff ^= PONG_BUFF_OFFSET;
+     return length;
 
   } else {
       return 0;

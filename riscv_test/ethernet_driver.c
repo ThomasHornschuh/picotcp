@@ -15,7 +15,7 @@ static int driver_eth_send(struct pico_device *dev, void *buf, int len)
 
 static int driver_eth_poll(struct pico_device *dev, int loop_score)
 {
-    uint8_t buf[1522];
+    uint8_t buf[MAX_FRAME];
     uint32_t len = 0;
 
     while (loop_score > 0) {
