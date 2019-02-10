@@ -29,7 +29,7 @@
 #define ETYPE_IP 0x800
 #define ETYPE_ARP 0x806
 
-
+#define dbg(...) 
 
 static volatile int in_ethernet_irq = 0;
 

@@ -3,7 +3,7 @@
 #include "pico_device.h"
 #include "xil_etherlite.h"
 
-
+#define dbg(...) 
 
 static int driver_eth_send(struct pico_device *dev, void *buf, int len)
 {

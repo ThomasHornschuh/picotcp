@@ -69,6 +69,6 @@ build/%.hex : build/%.elf
 
 
 
-build/pvtest.elf :  build/main.o  build/sys.o  build/xil_etherlite.o build/ethernet_driver.o
+build/pvtest.elf :  build/main.o  build/sys.o  build/xil_etherlite.o build/ethernet_driver.o build/tcpecho.o
 	$(TARGET_LD)  -o $@ $(TARGET_LDFLAGS_SYSCALL)  $^ -L$(PICODIR)/lib -lpicotcp  -lm
 
