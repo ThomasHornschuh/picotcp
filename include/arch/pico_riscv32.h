@@ -3,8 +3,6 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#define dbg printf
-/* #define dbg printf */
 
 /*************************/
 
@@ -15,13 +13,17 @@
 #include <stdint.h>
 //#include "pico_mm.h"
 
-#pragma message "pico_riscv32.h included"
+//#pragma message "pico_riscv32.h included"
 
 #define pico_zalloc(x) calloc(x, 1)
 #define pico_free(x) free(x)
 
+// Platform functions to be provided by linked code 
+uint64_t platform_timer_read_sys( void ); // returns time in us
+void platform_debug_printk(const char* s, ...);
 
-extern uint64_t platform_timer_read_sys( void ); // returns time in us
+#define dbg platform_debug_printk
+
 
 static inline unsigned long PICO_TIME(void)
 {
