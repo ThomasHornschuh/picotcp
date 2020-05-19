@@ -263,11 +263,25 @@ static void add_session(struct pico_tftp_session *idx)
     }
 }
 
+
+static inline int do_callback(struct pico_tftp_session *session, uint16_t err, uint8_t *data, int32_t len)
+{
+    int ret;
+
+    session_status_set(session, SESSION_STATUS_IN_CALLBACK);
+    ret = session->callback(session, err, data, len, session->argument);
+    session_status_clear(session, SESSION_STATUS_IN_CALLBACK);
+
+    return ret;
+}
+
 /* Returns 0 if OK and -1 in case of errors */
 static int del_session(struct pico_tftp_session *idx)
 {
     struct pico_tftp_session *prev = NULL;
     struct pico_tftp_session *pos;
+    // ADD TH:
+    if (idx->callback) do_callback(idx, PICO_TFTP_EV_SESSION_CLOSE, NULL, 0);
 
     for (pos = tftp_sessions; pos; pos = pos->next) {
         if (pos == idx) {
@@ -285,16 +299,7 @@ static int del_session(struct pico_tftp_session *idx)
     return -1;
 }
 
-static inline int do_callback(struct pico_tftp_session *session, uint16_t err, uint8_t *data, int32_t len)
-{
-    int ret;
 
-    session_status_set(session, SESSION_STATUS_IN_CALLBACK);
-    ret = session->callback(session, err, data, len, session->argument);
-    session_status_clear(session, SESSION_STATUS_IN_CALLBACK);
-
-    return ret;
-}
 
 static void timer_callback(pico_time now, void *arg);
 static void tftp_finish(struct pico_tftp_session *session);
