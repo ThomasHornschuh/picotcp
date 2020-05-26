@@ -15,10 +15,7 @@ TARGET_SIZE := $(TARGET_PREFIX)-size
 TARGET_OBJCOPY := $(TARGET_PREFIX)-objcopy
 HEXDUMP ?= hexdump
 
-
-
-
-PLATFORMDIR=$(HOME)/development/bonfire-software/platform
+PLATFORMDIR=$(HOME)/development/bonfire/bonfire-software/platform
 PICODIR=../build_rv32
 
 #LINKDEF?=wildfboot.ld
@@ -70,5 +67,5 @@ build/%.hex : build/%.elf
 
 
 build/pvtest.elf :  build/main.o  build/sys.o  build/xil_etherlite.o build/ethernet_driver.o build/tcpecho.o
-	$(TARGET_LD)  -o $@ $(TARGET_LDFLAGS_SYSCALL)  $^ -L$(PICODIR)/lib -lpicotcp  -lm
+	$(TARGET_LD)  -o $@ $(TARGET_LDFLAGS_SYSCALL)  $^ -L$(PICODIR)/lib -lpicotcp   -lg -lm -lgloss
 
